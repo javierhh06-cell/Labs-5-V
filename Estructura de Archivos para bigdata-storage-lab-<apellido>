@@ -1,0 +1,232 @@
+bigdata-storage-lab-<apellido>/
+├── data/
+│   ├── raw/
+│   │   └── .gitkeep
+│   ├── bronze/
+│   │   └── .gitkeep
+│   ├── silver/
+│   │   └── .gitkeep
+│   └── gold/
+│       └── .gitkeep
+├── docs/
+│   ├── diccionario.md
+│   └── gobernanza.md
+├── notebooks/
+├── src/
+│   ├── ingest.py
+│   ├── validate.py
+│   └── transform.py
+├── tests/
+│   └── checklist.md
+├── requirements.txt
+└── streamlit_app.py
+
+
+
+# requirements.txt
+
+streamlit
+pandas
+pyarrow
+python-dateutil
+
+streamlit_app.py
+
+import streamlit as st
+
+def main():
+    st.set_page_config(page_title="Almacén Analítico", layout="wide")
+    st.title("📊 De CSVs heterogéneos a un almacén analítico confiable")
+    st.write("Dashboard de monitoreo de calidad de datos y KPIs")
+    
+    # Secciones principales
+    tab1, tab2, tab3, tab4 = st.tabs(["🏠 Overview", "📈 Calidad", "🔍 Exploración", "⚙️ Configuración"])
+    
+    with tab1:
+        st.header("Resumen del Pipeline")
+        st.info("Esta aplicación monitorea el pipeline de datos desde ingesta hasta silver layer")
+        
+    with tab2:
+        st.header("Métricas de Calidad")
+        st.warning("Implementar métricas de calidad aquí")
+        
+    with tab3:
+        st.header("Exploración de Datos")
+        st.success("Visualización de datos Silver/Gold")
+        
+    with tab4:
+        st.header("Configuración del Pipeline")
+        st.code("Configuración de parámetros y reprocesamiento")
+
+if __name__ == "__main__":
+    main()
+
+#src/ingest.py
+
+"""
+Módulo de ingesta de datos desde archivos CSV heterogéneos
+"""
+
+import pandas as pd
+import os
+from pathlib import Path
+
+def list_csv_files(data_dir: str) -> list:
+    """
+    Lista todos los archivos CSV en el directorio raw
+    """
+    pass
+
+def read_heterogeneous_csv(file_path: str) -> pd.DataFrame:
+    """
+    Lee un CSV con manejo de encoding y delimitadores variables
+    """
+    pass
+
+def ingest_raw_data(source_path: str, destination_path: str) -> dict:
+    """
+    Proceso principal de ingesta a capa raw
+    Retorna métricas de ingesta
+    """
+    pass
+
+if __name__ == "__main__":
+    # Ejecución standalone para testing
+    pass
+
+# src/validate.py
+
+"""
+Módulo de validación de calidad de datos
+"""
+
+import pandas as pd
+from typing import Dict, List
+
+def validate_schema(df: pd.DataFrame, expected_columns: List[str]) -> Dict:
+    """
+    Valida que el DataFrame tenga las columnas esperadas
+    """
+    pass
+
+def check_data_quality(df: pd.DataFrame) -> Dict:
+    """
+    Ejecuta validaciones de calidad:
+    - Valores nulos
+    - Duplicados
+    - Valores atípicos
+    - Consistencia de formatos
+    """
+    pass
+
+def generate_quality_report(raw_metrics: Dict, validated_metrics: Dict) -> pd.DataFrame:
+    """
+    Genera reporte consolidado de calidad
+    """
+    pass
+
+if __name__ == "__main__":
+    # Testing de validaciones
+    pass
+
+#src/transform.py
+
+"""
+Módulo de transformación y normalización de datos
+"""
+
+import pandas as pd
+from typing import Dict
+
+def normalize_column_names(df: pd.DataFrame) -> pd.DataFrame:
+    """
+    Normaliza nombres de columnas a snake_case
+    """
+    pass
+
+def standardize_date_formats(df: pd.DataFrame, date_columns: List[str]) -> pd.DataFrame:
+    """
+    Estandariza formatos de fecha
+    """
+    pass
+
+def transform_to_bronze(raw_df: pd.DataFrame) -> pd.DataFrame:
+    """
+    Transforma datos raw a capa bronze (preservación + metadatos básicos)
+    """
+    pass
+
+def transform_to_silver(bronze_df: pd.DataFrame) -> pd.DataFrame:
+    """
+    Transforma datos bronze a silver (limpieza + enriquecimiento)
+    """
+    pass
+
+def calculate_kpis(silver_df: pd.DataFrame) -> Dict:
+    """
+    Calcula KPIs de negocio desde datos silver
+    """
+    pass
+
+if __name__ == "__main__":
+    # Testing de transformaciones
+    pass
+
+# docs/diccionario.md
+
+# Diccionario de Datos
+
+## Capa Raw
+| Archivo | Descripción | Columnas | Notas |
+|---------|-------------|----------|-------|
+|         |             |          |       |
+
+## Capa Bronze
+| Entidad | Atributo | Tipo | Descripción |
+|---------|----------|------|-------------|
+|         |          |      |             |
+
+## Capa Silver
+| Entidad | Atributo | Tipo | Descripción | Reglas de Transformación |
+|---------|----------|------|-------------|--------------------------|
+|         |          |      |             |                          |
+
+#docs/gobernanza.md
+
+# Gobernanza de Datos
+
+## Estándares de Calidad
+- **Completitud**: 
+- **Consistencia**:
+- **Exactitud**:
+
+## Procesos de Validación
+- Validaciones aplicadas en cada capa
+
+## Metadatos
+- Información del linaje de datos
+
+#tests/checklist.md
+
+# Checklist de Validación
+
+## ✅ Ingesta
+- [ ] Los datos crudos se ingresan correctamente
+- [ ] Se preservan los datos originales
+- [ ] Metadatos de ingesta generados
+
+## ✅ Validación
+- [ ] Se calculan métricas de calidad
+- [ ] Se reportan problemas de calidad
+- [ ] Validación de schema consistente
+
+## ✅ Transformación
+- [ ] Los datos se normalizan correctamente
+- [ ] Se aplican reglas de negocio
+- [ ] KPIs calculados apropiadamente
+
+## ✅ Almacenamiento
+- [ ] Se generan las capas bronze y silver
+- [ ] Los datos están en formato Parquet
+- [ ] Particionamiento adecuado
+
