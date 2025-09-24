@@ -1,0 +1,157 @@
+bigdata-storage-lab-<apellido>/
+├── data/
+│   ├── raw/
+│   │   └── .gitkeep
+│   ├── bronze/
+│   │   └── .gitkeep
+│   ├── silver/
+│   │   └── .gitkeep
+│   └── gold/
+│       └── .gitkeep
+├── docs/
+│   ├── diccionario.md
+│   └── gobernanza.md
+├── notebooks/
+├── src/
+│   ├── ingest.py
+│   ├── validate.py
+│   └── transform.py
+├── tests/
+│   └── checklist.md
+├── requirements.txt
+└── streamlit_app.py
+
+
+
+# Requirements.txt
+
+streamlit
+pandas
+pyarrow
+python-dateutil
+
+
+# streamlit_app.py
+
+import streamlit as st
+
+st.title("De CSVs heterogéneos a un almacén analítico confiable")
+st.write("Dashboard de monitoreo de calidad de datos y KPIs")
+
+#src/ingest.py
+
+"""
+Módulo de ingesta de datos desde archivos CSV heterogéneos.
+"""
+
+def ingest_raw_data(source_path: str, destination_path: str) -> None:
+    """
+    Ingresa datos crudos desde la ruta de origen y los guarda en la ruta de destino.
+    
+    Args:
+        source_path (str): Ruta de los archivos CSV de origen.
+        destination_path (str): Ruta de destino para guardar los datos crudos.
+    """
+    # TODO: Implementar la ingesta de datos
+    pass
+
+#src/validate.py
+
+"""
+Módulo de validación de calidad de datos.
+"""
+
+def validate_data(input_path: str) -> dict:
+    """
+    Valida la calidad de los datos en la ruta de entrada.
+    
+    Args:
+        input_path (str): Ruta de los datos a validar.
+    
+    Returns:
+        dict: Diccionario con métricas de calidad.
+    """
+    # TODO: Implementar validaciones
+    return {}
+
+# src/transform.py
+
+"""
+Módulo de transformación y normalización de datos.
+"""
+
+def transform_to_bronze(input_path: str, output_path: str) -> None:
+    """
+    Transforma los datos crudos a la capa bronze.
+    
+    Args:
+        input_path (str): Ruta de los datos crudos.
+        output_path (str): Ruta de salida para la capa bronze.
+    """
+    # TODO: Implementar transformación a bronze
+    pass
+
+def transform_to_silver(input_path: str, output_path: str) -> None:
+    """
+    Transforma los datos de bronze a la capa silver.
+    
+    Args:
+        input_path (str): Ruta de los datos bronze.
+        output_path (str): Ruta de salida para la capa silver.
+    """
+    # TODO: Implementar transformación a silver
+    pass
+
+# docs/diccionario.md
+
+# Diccionario de Datos
+
+## Capa Raw
+| Archivo | Descripción | Columnas | Notas |
+|---------|-------------|----------|-------|
+|         |             |          |       |
+
+## Capa Bronze
+| Entidad | Atributo | Tipo | Descripción |
+|---------|----------|------|-------------|
+|         |          |      |             |
+
+## Capa Silver
+| Entidad | Atributo | Tipo | Descripción |
+|---------|----------|------|-------------|
+|         |          |      |             |
+
+# docs/gobernanza.md
+
+# Gobernanza de Datos
+
+## Estándares de Calidad
+- Completitud: 
+- Consistencia:
+- Exactitud:
+
+## Procesos de Validación
+- Lista de validaciones aplicadas en cada capa.
+
+## Metadatos
+- Información del linaje de datos.
+
+# tests/checklist.md
+
+# Checklist de Validación
+
+## Ingesta
+- [ ] Los datos crudos se ingresan correctamente.
+- [ ] Se preservan los datos originales.
+
+## Validación
+- [ ] Se calculan métricas de calidad.
+- [ ] Se reportan problemas de calidad.
+
+## Transformación
+- [ ] Los datos se normalizan correctamente.
+- [ ] Se aplican reglas de negocio.
+
+## Almacenamiento
+- [ ] Se generan las capas bronze y silver.
+- [ ] Los datos están en formato Parquet.
