@@ -1,0 +1,207 @@
+# src/transform.py
+"""
+Módulo de transformación y normalización de datos
+"""
+
+import pandas as pd
+from typing import Dict, List, Optional
+import re
+
+def normalize_columns(df: pd.DataFrame, mapping: Dict[str, str]) -> pd.DataFrame:
+    """
+    Normaliza columnas según mapeo y aplica transformaciones básicas
+    
+    Args:
+        df: DataFrame de entrada
+        mapping: Diccionario {columna_origen: columna_destino}
+                 donde destino debe ser 'date', 'partner' o 'amount'
+    
+    Returns:
+        DataFrame con columnas normalizadas
+    """
+    # Crear copia para no modificar original
+    result_df = df.copy()
+    
+    # Renombrar columnas según mapping
+    result_df = result_df.rename(columns=mapping)
+    
+    # Aplicar transformaciones por tipo de columna
+    if 'date' in result_df.columns:
+        # Parsear fechas con diferentes formatos
+        result_df['date'] = pd.to_datetime(
+            result_df['date'], 
+            errors='coerce',  # Convierte errores a NaT
+            dayfirst=True     # Prioriza formato DD/MM/YYYY
+        ).dt.strftime('%Y-%m-%d')  # Formato ISO
+    
+    if 'amount' in result_df.columns:
+        # Limpiar y convertir amount a float
+        result_df['amount'] = (
+            result_df['amount']
+            .astype(str)
+            .str.replace(r'[€$\s]', '', regex=True)  # Quitar símbolos monetarios
+            .str.replace(',', '.')  # Convertir coma decimal a punto
+            .str.replace(r'\.(?=.*\.)', '', regex=True)  # Quitar puntos de miles
+            .apply(pd.to_numeric, errors='coerce')  # Convertir a numérico
+        )
+    
+    if 'partner' in result_df.columns:
+        # Limpiar espacios y normalizar texto
+        result_df['partner'] = (
+            result_df['partner']
+            .astype(str)
+            .str.strip()  # Quitar espacios al inicio/fin
+            .str.lower()  # Minúsculas
+            .str.replace(r'\s+', ' ', regex=True)  # Normalizar espacios múltiples
+        )
+    
+    return result_df
+
+def to_silver(bronze_df: pd.DataFrame) -> pd.DataFrame:
+    """
+    Transforma datos bronze a silver agregando por partner y mes
+    
+    Args:
+        bronze_df: DataFrame con datos bronze (date, partner, amount)
+    
+    Returns:
+        DataFrame silver con agregación mensual
+    """
+    # Crear copia y asegurar tipos
+    silver_df = bronze_df.copy()
+    silver_df['date'] = pd.to_datetime(silver_df['date'])
+    
+    # Crear columna month (primer día del mes)
+    silver_df['month'] = silver_df['date'].dt.to_period('M').dt.to_timestamp()
+    
+    # Agregar amount por partner y mes
+    silver_aggregated = (
+        silver_df
+        .groupby(['partner', 'month'], as_index=False)
+        .agg({
+            'amount': 'sum',
+            'date': 'count'  # Contar transacciones por mes
+        })
+        .rename(columns={'date': 'transaction_count'})
+    )
+
+    # src/validate.py
+"""
+Módulo de validación de calidad de datos
+"""
+
+import pandas as pd
+from typing import List, Dict, Any
+
+def basic_checks(df: pd.DataFrame) -> List[str]:
+    """
+    Realiza validaciones básicas del DataFrame
+    
+    Args:
+        df: DataFrame a validar
+    
+    Returns:
+        Lista de mensajes de error (vacía si todo OK)
+    """
+    errors = []
+    
+    # 1. Verificar columnas canónicas
+    required_columns = ['date', 'partner', 'amount']
+    missing_columns = [col for col in required_columns if col not in df.columns]
+    if missing_columns:
+        errors.append(f"Columnas requeridas faltantes: {missing_columns}")
+    
+    # 2. Validar amount (numérico y no negativo)
+    if 'amount' in df.columns:
+        # Verificar que sea numérico
+        if not pd.api.types.is_numeric_dtype(df['amount']):
+            errors.append("Columna 'amount' debe ser numérica")
+        else:
+            # Verificar valores negativos
+            negative_count = (df['amount'] < 0).sum()
+            if negative_count > 0:
+                errors.append(f"Se encontraron {negative_count} valores negativos en 'amount'")
+    
+    # 3. Validar date (formato datetime)
+    if 'date' in df.columns:
+        # Intentar convertir a datetime
+        try:
+            date_series = pd.to_datetime(df['date'], errors='coerce')
+            invalid_dates = date_series.isna().sum()
+            if invalid_dates > 0:
+                errors.append(f"Se encontraron {invalid_dates} fechas inválidas")
+        except Exception as e:
+            errors.append(f"Error al validar fechas: {str(e)}")
+    
+    # 4. Validar partner (no vacíos)
+    if 'partner' in df.columns:
+        empty_partners = df['partner'].isna().sum()
+        if empty_partners > 0:
+            errors.append(f"Se encontraron {empty_partners} partners vacíos")
+    
+    return errors
+
+    # src/ingest.py
+"""
+Módulo de ingesta de datos
+"""
+
+import pandas as pd
+from typing import List, Dict
+from datetime import datetime
+
+def tag_lineage(df: pd.DataFrame, source_name: str) -> pd.DataFrame:
+    """
+    Añade metadatos de linaje al DataFrame
+    
+    Args:
+        df: DataFrame original
+        source_name: Nombre del archivo fuente
+    
+    Returns:
+        DataFrame con metadatos de linaje añadidos
+    """
+    result_df = df.copy()
+    
+    # Añadir metadatos de linaje
+    result_df['source_file'] = source_name
+    result_df['ingested_at'] = datetime.utcnow().isoformat() + 'Z'
+    
+    return result_df
+
+def concat_bronze(frames: List[pd.DataFrame]) -> pd.DataFrame:
+    """
+    Concatena múltiples DataFrames en esquema bronze unificado
+    
+    Args:
+        frames: Lista de DataFrames a concatenar
+    
+    Returns:
+        DataFrame unificado con esquema bronze
+    """
+    if not frames:
+        return pd.DataFrame(columns=['date', 'partner', 'amount', 'source_file', 'ingested_at'])
+    
+    # Esquema objetivo para capa bronze
+    bronze_schema = ['date', 'partner', 'amount', 'source_file', 'ingested_at']
+    
+    try:
+        # Concatenar todos los DataFrames
+        concatenated = pd.concat(frames, ignore_index=True)
+        
+        # Asegurar que tenemos las columnas esperadas
+        for col in bronze_schema:
+            if col not in concatenated.columns:
+                concatenated[col] = None
+        
+        # Seleccionar y ordenar columnas según esquema
+        bronze_df = concatenated[bronze_schema].copy()
+        
+        return bronze_df
+        
+    except Exception as e:
+        # En caso de error, crear DataFrame vacío con schema correcto
+        print(f"Error al concatenar DataFrames: {e}")
+        return pd.DataFrame(columns=bronze_schema)
+    
+    return silver_aggregated
