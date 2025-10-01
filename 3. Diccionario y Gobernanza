@@ -1,1 +1,126 @@
+# docs/diccionario.md
 
+# Diccionario de Datos - Esquema Canónico
+
+## 🎯 Esquema Canónico Objetivo
+
+La capa **Silver** seguirá este esquema unificado:
+
+| Campo | Tipo | Formato | Descripción | Reglas de Validación |
+|-------|------|---------|-------------|---------------------|
+| `date` | Date | YYYY-MM-DD | Fecha del registro | Requerido, debe ser fecha válida |
+| `partner` | String | Texto normalizado | Identificador del partner/compañía | Requerido, min 2 caracteres |
+| `amount` | Float | EUR (2 decimales) | Monto monetario en euros | ≥ 0, máximo 6 decimales en bruto |
+
+## 🔄 Mapeos Origen → Canónico
+
+### Ejemplos Típicos de Transformación
+
+| Origen (Campo/Formato) | Transformación Aplicada | Canónico (Resultado) |
+|------------------------|------------------------|---------------------|
+| `FECHA: "15/03/2024"` (DD/MM/YYYY) | Parseo y reformateo | `date: "2024-03-15"` |
+| `Fecha: "Mar-15-2024"` (MMM-DD-YYYY) | Parseo con locale inglés | `date: "2024-03-15"` |
+| `PARTNER: "COMPANY A"` (mayúsculas) | Lowercase + trim | `partner: "company a"` |
+| `Partner: "Co. B"` (abreviado) | Normalización diccionario | `partner: "company b"` |
+| `AMOUNT: "1.250,50"` (EUR con punto decimal europeo) | Replace comma→dot, limpieza | `amount: 1250.50` |
+| `Monto: "$1,500.00"` (USD con formato americano) | Conversión EUR + limpieza | `amount: 1365.75` (tipo cambio 0.91) |
+
+## 📊 Estructuras por Capa
+
+### Capa Bronze (Raw Preservado)
+- **date_raw**: String (formato original)
+- **partner_raw**: String (texto original)  
+- **amount_raw**: String (valor original)
+- **source_file**: String (origen del dato)
+- **ingestion_timestamp**: Timestamp
+
+### Capa Silver (Normalizado)
+- **date**: Date (YYYY-MM-DD)
+- **partner**: String (normalizado)
+- **amount**: Float (EUR)
+- **currency**: String (siempre "EUR")
+- **data_quality_score**: Float (0-1)
+- **transformation_notes**: String (metadatos)
+
+#Docs/gobernanza.md
+
+# Gobernanza de Datos
+
+## 📜 Origen y Linaje de Datos
+
+### Fuentes de Datos
+| Fuente | Frecuencia | Responsable | Sensibilidad |
+|--------|------------|-------------|--------------|
+| CSV Partner A | Diaria | Área Comercial | Baja |
+| CSV Partner B | Semanal | Área Operaciones | Media |
+| CSV Partner C | Mensual | Área Finanzas | Alta |
+
+### Linaje del Pipeline
+
+
+## ✅ Validaciones Mínimas por Capa
+
+### Capa Raw → Bronze
+- [ ] **Schema Validation**: Columnas mínimas presentes
+- [ ] **Encoding**: UTF-8 válido
+- [ ] **Integridad**: Archivo no corrupto
+
+### Capa Bronze → Silver  
+- [ ] **Completitud**: `date` y `partner` no nulos
+- [ ] **Formato**: `date` convertible a YYYY-MM-DD
+- [ ] **Rango**: `amount` ≥ 0 y < límite business
+- [ ] **Consistencia**: `partner` existe en catálogo
+
+## 🔐 Política de Mínimos Privilegios
+
+### Roles y Permisos
+| Rol | Acceso Raw | Acceso Bronze | Acceso Silver | Acceso Gold |
+|-----|------------|---------------|---------------|-------------|
+| **Data Engineer** | Lectura/Escritura | Lectura/Escritura | Lectura/Escritura | Lectura/Escritura |
+| **Data Analyst** | Sin acceso | Lectura limitada | Lectura completa | Lectura/Escritura |
+| **Business User** | Sin acceso | Sin acceso | Lectura via API | Lectura dashboard |
+
+### Reglas de Acceso
+- **Raw**: Solo ingeniería de datos
+- **Bronze**: Lectura para debugging autorizado
+- **Silver**: Acceso estándar para análisis
+- **Gold**: Datos agregados para negocio
+
+## 🔍 Trazabilidad y Auditoría
+
+### Metadatos Obligatorios
+Cada registro debe incluir:
+- **source_file**: Origen del dato
+- **ingestion_batch**: Lote de ingesta  
+- **processing_timestamp**: Cuándo se procesó
+- **data_quality_score**: Puntuación calidad (0-1)
+- **validation_errors**: Errores detectados
+
+### Logs de Auditoría
+| Evento | Log Level | Información Capturada |
+|--------|-----------|---------------------|
+| Ingesta archivo | INFO | filename, records_count, checksum |
+| Error validación | WARNING | field, error_type, record_id |
+| Transformación exitosa | INFO | source_records, target_records |
+
+## 👥 Roles y Responsabilidades
+
+### Data Owner (Por dominio)
+- Define reglas de negocio
+- Aprueba cambios de schema
+- Responsable de calidad origen
+
+### Data Steward  
+- Mantiene diccionario de datos
+- Monitorea métricas calidad
+- Resuelve dudas de negocio
+
+### Data Engineer
+- Implementa pipelines
+- Mantiene infraestructura  
+- Garantiza SLA procesamiento
+
+### Data Consumer
+- Utiliza datos para análisis
+- Reporta problemas calidad
+- Sigue políticas acceso
