@@ -1,0 +1,488 @@
+# Caso de uso asignado (e-commerce, sensores IoT, logs de fraude)
+caso = "e-commerce"
+
+# V dominante (Volumen, Velocidad, Variedad, Veracidad, Valor)
+v_dominante = "Volumen"
+
+# Una decisión de diseño para la capa bronze
+decision_bronze = "Almacenar en formato Parquet particionado por fecha"
+
+# Una decisión de diseño para la capa silver
+decision_silver = "Eliminar duplicados y aplicar un esquema fuerte"
+
+{
+  "nbformat": 4,
+  "nbformat_minor": 5,
+  "metadata": {
+    "kernelspec": {
+      "display_name": "Python 3",
+      "language": "python",
+      "name": "python3"
+    },
+    "language_info": {
+      "codemirror_mode": {
+        "name": "ipython",
+        "version": 3
+      },
+      "file_extension": ".py",
+      "mimetype": "text/x-python",
+      "name": "python",
+      "nbconvert_exporter": "python",
+      "pygments_lexer": "ipython3",
+      "version": "3.8.0"
+    },
+    "colab": {
+      "provenance": [],
+      "include_colab_link": true
+    }
+  },
+  "cells": [
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "intro-title"
+      },
+      "source": [
+        "# 🧪 Laboratorio: Datos Sintéticos y Formatos\n",
+        "## De CSVs heterogéneos a un almacén analítico confiable\n",
+        "\n",
+        "**Objetivo**: Comparar formatos, simular procesamiento por lotes y construir KPIs básicos."
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "dependencies"
+      },
+      "source": [
+        "# Dependencias básicas\n",
+        "!pip install pandas pyarrow matplotlib\n",
+        "\n",
+        "import pandas as pd\n",
+        "import numpy as np\n",
+        "import matplotlib.pyplot as plt\n",
+        "from datetime import datetime, timedelta\n",
+        "import os\n",
+        "import json\n",
+        "\n",
+        "print(\"✅ Dependencias instaladas\")"
+      ],
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "synthetic-data"
+      },
+      "source": [
+        "## 📊 1. Generación de Datos Sintéticos"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "ecommerce-data"
+      },
+      "source": [
+        "# Caso 1: E-commerce\n",
+        "np.random.seed(42)\n",
+        "dates = pd.date_range('2024-01-01', '2024-03-31', freq='D')\n",
+        "\n",
+        "ecommerce_data = []\n",
+        "for date in dates:\n",
+        "    for _ in range(np.random.randint(50, 200)):  # Transacciones diarias variables\n",
+        "        ecommerce_data.append({\n",
+        "            'timestamp': date + timedelta(hours=np.random.randint(0, 23), \n",
+        "                                        minutes=np.random.randint(0, 59)),\n",
+        "            'customer_id': f\"CUST_{np.random.randint(1000, 9999)}\",\n",
+        "            'product_id': f\"PROD_{np.random.choice(['A', 'B', 'C', 'D'])}\",\n",
+        "            'amount': round(np.random.uniform(10, 500), 2),\n",
+        "            'payment_method': np.random.choice(['credit_card', 'debit_card', 'paypal'], p=[0.6, 0.3, 0.1])\n",
+        "        })\n",
+        "\n",
+        "df_ecommerce = pd.DataFrame(ecommerce_data)\n",
+        "print(f\"📦 E-commerce: {len(df_ecommerce)} registros generados\")\n",
+        "df_ecommerce.head()"
+      ],
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "iot-data"
+      },
+      "source": [
+        "# Caso 2: Sensores IoT\n",
+        "np.random.seed(43)\n",
+        "sensor_locations = ['factory_a', 'factory_b', 'warehouse_1', 'office_main']\n",
+        "sensor_types = ['temperature', 'humidity', 'pressure', 'vibration']\n",
+        "\n",
+        "iot_data = []\n",
+        "start_time = datetime(2024, 3, 1, 0, 0, 0)\n",
+        "\n",
+        "for location in sensor_locations:\n",
+        "    for sensor in sensor_types:\n",
+        "        current_time = start_time\n",
+        "        while current_time < start_time + timedelta(days=7):  # Una semana de datos\n",
+        "            # Simular lecturas cada 5 minutos con algo de ruido\n",
+        "            base_value = {\n",
+        "                'temperature': 22 + 8 * np.sin(current_time.hour / 24 * 2 * np.pi),\n",
+        "                'humidity': 50 + 20 * np.cos(current_time.hour / 12 * 2 * np.pi),\n",
+        "                'pressure': 1013 + np.random.normal(0, 2),\n",
+        "                'vibration': np.random.exponential(0.5)\n",
+        "            }[sensor]\n",
+        "            \n",
+        "            iot_data.append({\n",
+        "                'sensor_id': f\"{location}_{sensor}\",\n",
+        "                'timestamp': current_time,\n",
+        "                'value': round(base_value + np.random.normal(0, 0.5), 3),\n",
+        "                'status': np.random.choice(['normal', 'warning', 'error'], p=[0.95, 0.04, 0.01])\n",
+        "            })\n",
+        "            \n",
+        "            current_time += timedelta(minutes=5)\n",
+        "\n",
+        "df_iot = pd.DataFrame(iot_data)\n",
+        "print(f\"🌡️ IoT: {len(df_iot)} registros generados\")\n",
+        "df_iot.head()"
+      ],
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "fraud-data"
+      },
+      "source": [
+        "# Caso 3: Logs de Fraude\n",
+        "np.random.seed(44)\n",
+        "\n",
+        "fraud_data = []\n",
+        "fraud_patterns = ['multiple_quick_transactions', 'unusual_location', 'high_amount', 'suspicious_merchant']\n",
+        "\n",
+        "for i in range(10000):  # 10K transacciones para analizar\n",
+        "    timestamp = datetime(2024, 3, 1) + timedelta(\n",
+        "        days=np.random.randint(0, 30),\n",
+        "        hours=np.random.randint(0, 23),\n",
+        "        minutes=np.random.randint(0, 59)\n",
+        "    )\n",
+        "    \n",
+        "    # 2% de transacciones fraudulentas\n",
+        "    is_fraud = np.random.random() < 0.02\n",
+        "    \n",
+        "    fraud_data.append({\n",
+        "        'transaction_id': f\"TXN_{i:06d}\",\n",
+        "        'user_id': f\"USER_{np.random.randint(100, 999)}\",\n",
+        "        'timestamp': timestamp,\n",
+        "        'amount': round(np.random.exponential(100), 2),\n",
+        "        'merchant_category': np.random.choice(['retail', 'travel', 'digital', 'food']),\n",
+        "        'location': f\"Country_{np.random.randint(1, 5)}\",\n",
+        "        'is_fraud': is_fraud,\n",
+        "        'risk_score': round(np.random.beta(2, 5) if not is_fraud else np.random.beta(8, 2), 3),\n",
+        "        'flagged_pattern': np.random.choice(fraud_patterns) if is_fraud else 'none'\n",
+        "    })\n",
+        "\n",
+        "df_fraud = pd.DataFrame(fraud_data)\n",
+        "print(f\"🕵️ Fraud: {len(df_fraud)} registros, {df_fraud['is_fraud'].sum()} fraudulentos\")\n",
+        "df_fraud[df_fraud['is_fraud']].head()"
+      ],
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "format-comparison"
+      },
+      "source": [
+        "## 📊 2. Comparación CSV vs Parquet"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "csv-parquet-compare"
+      },
+      "source": [
+        "# Función para comparar formatos\n",
+        "def compare_formats(df, dataset_name):\n",
+        "    # Guardar en ambos formatos\n",
+        "    csv_file = f\"/tmp/{dataset_name}.csv\"\n",
+        "    parquet_file = f\"/tmp/{dataset_name}.parquet\"\n",
+        "    \n",
+        "    # CSV\n",
+        "    df.to_csv(csv_file, index=False)\n",
+        "    csv_size = os.path.getsize(csv_file)\n",
+        "    \n",
+        "    # Parquet\n",
+        "    df.to_parquet(parquet_file, index=False, compression='snappy')\n",
+        "    parquet_size = os.path.getsize(parquet_file)\n",
+        "    \n",
+        "    # Tiempos de lectura\n",
+        "    import time\n",
+        "    \n",
+        "    start = time.time()\n",
+        "    df_csv = pd.read_csv(csv_file)\n",
+        "    csv_read_time = time.time() - start\n",
+        "    \n",
+        "    start = time.time()\n",
+        "    df_parquet = pd.read_parquet(parquet_file)\n",
+        "    parquet_read_time = time.time() - start\n",
+        "    \n",
+        "    # Resultados\n",
+        "    return {\n",
+        "        'dataset': dataset_name,\n",
+        "        'csv_size_mb': round(csv_size / 1024 / 1024, 2),\n",
+        "        'parquet_size_mb': round(parquet_size / 1024 / 1024, 2),\n",
+        "        'compression_ratio': round(csv_size / parquet_size, 2),\n",
+        "        'csv_read_seconds': round(csv_read_time, 3),\n",
+        "        'parquet_read_seconds': round(parquet_read_time, 3)\n",
+        "    }\n",
+        "\n",
+        "# Comparar los tres datasets\n",
+        "results = []\n",
+        "for name, df in [('ecommerce', df_ecommerce), ('iot', df_iot), ('fraud', df_fraud)]:\n",
+        "    results.append(compare_formats(df, name))\n",
+        "\n",
+        "comparison_df = pd.DataFrame(results)\n",
+        "comparison_df"
+      ],
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "micro-batches"
+      },
+      "source": [
+        "## ⏱️ 3. Simulación de Micro-batches (60 minutos)"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "batch-simulation"
+      },
+      "source": [
+        "# Simular llegada continua de datos IoT\n",
+        "def simulate_microbatches(df, batch_minutes=60):\n",
+        "    \"\"\"Simula procesamiento por micro-batches\"\"\"\n",
+        "    \n",
+        "    # Ordenar por timestamp\n",
+        "    df_sorted = df.sort_values('timestamp').copy()\n",
+        "    \n",
+        "    # Encontrar rango temporal total\n",
+        "    start_time = df_sorted['timestamp'].min()\n",
+        "    end_time = df_sorted['timestamp'].max()\n",
+        "    \n",
+        "    print(f\"📅 Rango temporal: {start_time} a {end_time}\")\n",
+        "    print(f\"⏱️  Tamaño de batch: {batch_minutes} minutos\")\n",
+        "    \n",
+        "    # Crear batches\n",
+        "    current_batch_start = start_time\n",
+        "    batch_results = []\n",
+        "    batch_number = 1\n",
+        "    \n",
+        "    while current_batch_start < end_time:\n",
+        "        current_batch_end = current_batch_start + timedelta(minutes=batch_minutes)\n",
+        "        \n",
+        "        # Filtrar registros en este batch\n",
+        "        batch_data = df_sorted[\n",
+        "            (df_sorted['timestamp'] >= current_batch_start) & \n",
+        "            (df_sorted['timestamp'] < current_batch_end)\n",
+        "        ]\n",
+        "        \n",
+        "        if len(batch_data) > 0:\n",
+        "            batch_results.append({\n",
+        "                'batch_number': batch_number,\n",
+        "                'batch_start': current_batch_start,\n",
+        "                'batch_end': current_batch_end,\n",
+        "                'records_processed': len(batch_data),\n",
+        "                'sensors_covered': batch_data['sensor_id'].nunique(),\n",
+        "                'avg_value': batch_data['value'].mean(),\n",
+        "                'warnings_count': (batch_data['status'] == 'warning').sum(),\n",
+        "                'errors_count': (batch_data['status'] == 'error').sum()\n",
+        "            })\n",
+        "        \n",
+        "        current_batch_start = current_batch_end\n",
+        "        batch_number += 1\n",
+        "    \n",
+        "    return pd.DataFrame(batch_results)\n",
+        "\n",
+        "# Ejecutar simulación en datos IoT\n",
+        "batch_results = simulate_microbatches(df_iot, batch_minutes=60)\n",
+        "print(f\"\\n🔄 Total batches procesados: {len(batch_results)}\")\n",
+        "batch_results.head(10)"
+      ],
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "kpi-calculation"
+      },
+      "source": [
+        "## 📈 4. Construcción de KPI y Visualización"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "kpi-visualization"
+      },
+      "source": [
+        "# KPIs para datos de fraude\n",
+        "def calculate_fraud_kpis(df):\n",
+        "    \"\"\"Calcula KPIs de detección de fraude\"\"\"\n",
+        "    \n",
+        "    # Agrupar por día\n",
+        "    df_daily = df.copy()\n",
+        "    df_daily['date'] = df_daily['timestamp'].dt.date\n",
+        "    \n",
+        "    daily_kpis = df_daily.groupby('date').agg({\n",
+        "        'transaction_id': 'count',\n",
+        "        'amount': 'sum',\n",
+        "        'is_fraud': 'sum',\n",
+        "        'risk_score': 'mean'\n",
+        "    }).rename(columns={\n",
+        "        'transaction_id': 'total_transactions',\n",
+        "        'is_fraud': 'fraudulent_transactions',\n",
+        "        'risk_score': 'avg_risk_score'\n",
+        "    }).reset_index()\n",
+        "    \n",
+        "    # Calcular métricas derivadas\n",
+        "    daily_kpis['fraud_rate'] = daily_kpis['fraudulent_transactions'] / daily_kpis['total_transactions'] * 100\n",
+        "    daily_kpis['avg_transaction_value'] = daily_kpis['amount'] / daily_kpis['total_transactions']\n",
+        "    \n",
+        "    return daily_kpis\n",
+        "\n",
+        "# Calcular KPIs\n",
+        "fraud_kpis = calculate_fraud_kpis(df_fraud)\n",
+        "print(\"📊 KPIs de Fraude Diarios:\")\n",
+        "fraud_kpis.head()"
+      ],
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "matplotlib-plot"
+      },
+      "source": [
+        "# Visualización con matplotlib (sin estilos custom)\n",
+        "fig, ((ax1, ax2), (ax3, ax4)) = plt.subplots(2, 2, figsize=(15, 10))\n",
+        "\n",
+        "# 1. Tasa de fraude diaria\n",
+        "ax1.plot(fraud_kpis['date'], fraud_kpis['fraud_rate'], marker='o', linewidth=2)\n",
+        "ax1.set_title('Tasa de Fraude Diaria (%)')\n",
+        "ax1.set_xlabel('Fecha')\n",
+        "ax1.set_ylabel('Tasa de Fraude %')\n",
+        "ax1.grid(True, alpha=0.3)\n",
+        "\n",
+        "# 2. Volumen de transacciones vs fraudes\n",
+        "ax2.bar(fraud_kpis['date'], fraud_kpis['total_transactions'], alpha=0.7, label='Total Transacciones')\n",
+        "ax2.bar(fraud_kpis['date'], fraud_kpis['fraudulent_transactions'], alpha=0.9, label='Fraudes')\n",
+        "ax2.set_title('Volumen de Transacciones vs Fraudes')\n",
+        "ax2.set_xlabel('Fecha')\n",
+        "ax2.set_ylabel('Número de Transacciones')\n",
+        "ax2.legend()\n",
+        "\n",
+        "# 3. Score de riesgo promedio\n",
+        "ax3.plot(fraud_kpis['date'], fraud_kpis['avg_risk_score'], color='red', marker='s', linewidth=2)\n",
+        "ax3.set_title('Score de Riesgo Promedio')\n",
+        "ax3.set_xlabel('Fecha')\n",
+        "ax3.set_ylabel('Score de Riesgo (0-1)')\n",
+        "ax3.grid(True, alpha=0.3)\n",
+        "\n",
+        "# 4. Valor promedio de transacción\n",
+        "ax4.bar(fraud_kpis['date'], fraud_kpis['avg_transaction_value'], color='green', alpha=0.7)\n",
+        "ax4.set_title('Valor Promedio de Transacción')\n",
+        "ax4.set_xlabel('Fecha')\n",
+        "ax4.set_ylabel('Valor (EUR)')\n",
+        "\n",
+        "plt.tight_layout()\n",
+        "plt.show()\n",
+        "\n",
+        "# KPIs resumen\n",
+        "print(\"\\n🎯 KPIs Resumen:\")\n",
+        "print(f\"   • Tasa de fraude promedio: {fraud_kpis['fraud_rate'].mean():.2f}%\")\n",
+        "print(f\"   • Transacciones totales: {fraud_kpis['total_transactions'].sum():,}\")\n",
+        "print(f\"   • Fraudes totales detectados: {fraud_kpis['fraudulent_transactions'].sum()}\")\n",
+        "print(f\"   • Valor total en riesgo: €{fraud_kpis[fraud_kpis['fraudulent_transactions'] > 0]['amount'].sum():,.2f}\")"
+      ],
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "flash-activity"
+      },
+      "source": [
+        "## 🎯 Actividad Flash - Análisis por Equipo"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "team-activity"
+      },
+      "source": [
+        "# CELDA PARA ANÁLISIS DEL EQUIPO\n",
+        "# Cada miembro complete según el caso asignado\n",
+        "\n",
+        "analisis_equipo = {\n",
+        "    \"caso_asignado\": \"\",  # e-commerce, IoT o fraud\n",
+        "    \"v_dominante\": \"\",    # Volumen, Velocidad, Variedad, Veracidad, Valor\n",
+        "    \"decision_bronze\": \"\", # 1 decisión técnica para capa bronze\n",
+        "    \"decision_silver\": \"\"  # 1 decisión técnica para capa silver\n",
+        "}\n",
+        "\n",
+        "# EJEMPLO para e-commerce:\n",
+        "# analisis_equipo = {\n",
+        "#     \"caso_asignado\": \"e-commerce\",\n",
+        "#     \"v_dominante\": \"Volumen\",\n",
+        "#     \"decision_bronze\": \"Particionar por fecha y preservar raw\",\n",
+        "#     \"decision_silver\": \"Enriquecer con datos de cliente y categorías\"\n",
+        "# }\n",
+        "\n",
+        "print(\"🔍 Análisis del equipo:\")\n",
+        "for key, value in analisis_equipo.items():\n",
+        "    print(f\"   {key}: {value}\")\n",
+        "\n",
+        "# Guardar análisis\n",
+        "with open('/tmp/analisis_equipo.json', 'w') as f:\n",
+        "    json.dump(analisis_equipo, f, indent=2)\n",
+        "\n",
+        "print(\"\\n✅ Análisis guardado en /tmp/analisis_equipo.json\")"
+      ],
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "conclusions"
+      },
+      "source": [
+        "## 📝 Conclusiones del Laboratorio\n",
+        "\n",
+        "### Hallazgos Clave:\n",
+        "1. **Formatos**: Parquet ofrece mejor compresión y velocidad de lectura\n",
+        "2. **Micro-batches**: Permiten procesamiento incremental y monitoreo continuo  \n",
+        "3. **KPIs**: Métricas simples pueden revelar patrones importantes\n",
+        "4. **Datos sintéticos**: Útiles para testing y desarrollo de pipelines\n",
+        "\n",
+       ### Próximos Pasos:\n",
+        "- Implementar validaciones de datos\n",
+        "- Agregar capa Gold para KPIs de negocio\n",
+        "- Configurar alertas basadas en KPIs"
+      ]
+    }
+  ]
+}
