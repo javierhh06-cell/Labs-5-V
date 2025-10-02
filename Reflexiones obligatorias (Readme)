@@ -1,0 +1,30 @@
+# 🤔 Prompts de Reflexión
+
+Responde a las siguientes preguntas reflexionando sobre las decisiones técnicas tomadas en tu implementación:
+
+## 1. Volumen y Escalabilidad
+**¿Cuál es la V dominante en tu diseño actual y cuál sería si el tráfico se duplicara? Justifica en 3 líneas.**
+
+
+## 2. Trade-offs Técnicos
+**¿Qué trade-off específico has elegido en tu diseño (ej: compresión vs CPU, latencia vs costo) y cómo lo medirías?**
+
+
+## 3. Inmutabilidad y Linaje
+**¿Por qué el principio de "datos inmutables + linaje completo" mejora la veracidad y qué coste operativo añade?**
+
+
+## 4. KPIs y SLA
+**¿Cuál es el KPI principal de tu dashboard y qué SLA has definido? ¿Qué decisión de negocio habilita y por qué elegiste esa latencia?**
+
+## 5. Riesgos y Mitigaciones
+**¿Cuál es el riesgo principal de tu diseño actual y qué mitigación técnica concreta has implementado?**
+
+
+---
+
+**Instrucciones:**
+- Responde cada pregunta con concisión técnica
+- Justifica con ejemplos de tu implementación
+- Relaciona con las 5V's cuando sea relevante
+- Sé honesto sobre limitaciones y mejoras futuras
