@@ -1,0 +1,77 @@
+# 🎯 Plantilla General - Decisiones por Caso de Uso
+
+| Dimensión | Descripción |
+|-----------|-------------|
+| **V Prioritaria** | Volumen/Velocidad/Variedad/Veracidad/Valor más crítica para el caso |
+| **Ingesta** | Estrategias de captura y entrada de datos |
+| **Storage** | Formato, particionamiento, retención y capas |
+| **Compute** | Procesamiento, transformación y agregación |
+| **Analítica** | KPIs, visualización y toma de decisiones |
+| **Riesgos Clave** | Principales desafíos técnicos y de negocio |
+| **Mitigaciones** | Contramedidas técnicas específicas |
+| **Métrica de Éxito** | Indicador cuantificable de performance |
+
+---
+
+# 🛒 Caso 1: E-commerce
+
+| Dimensión | Decisiones y Consideraciones |
+|-----------|------------------------------|
+| **V Prioritaria** | **Volumen** - Alto tráfico transaccional y estacionalidad |
+| **Ingesta** | • API REST para transacciones en tiempo real<br>• Batch nightly para catálogos<br>• Dead letter queue para fallos |
+| **Storage** | • Bronze: JSON raw + Parquet<br>• Silver: Parquet particionado por fecha<br>• Gold: Tablas agregadas por producto/categoría |
+| **Compute** | • Spark Structured Streaming para ETL<br>• Agregaciones diarias de ventas<br>• Enriquecimiento con datos de cliente |
+| **Analítica** | • Conversión por funnel<br>• Customer Lifetime Value<br>• Productos más vendidos por temporada |
+| **Riesgos Clave** | • Picos de tráfico en Black Friday<br>• Inconsistencias en inventario<br>• Datos duplicados por reintentos |
+| **Mitigaciones** | • Rate limiting en APIs<br>• Transacciones idempotentes<br>• Validación cross-channel |
+| **Métrica de Éxito** | Tiempo de procesamiento < 15 min para datos diarios (99.9% SLA) |
+
+---
+
+# 🌡️ Caso 2: Sensores IoT
+
+| Dimensión | Decisiones y Consideraciones |
+|-----------|------------------------------|
+| **V Prioritaria** | **Velocidad** - Lecturas continuas con requerimientos de low-latency |
+| **Ingesta** | • MQTT/WebSockets para tiempo real<br>• Micro-batches cada 5-15 min<br>• Compresión en origen para bandwidth |
+| **Storage** | • Bronze: Time-series database (InfluxDB)<br>• Silver: Parquet particionado por sensor+fecha<br>• Gold: Aggregates horarios/diarios |
+| **Compute** | • Ventanas deslizantes para promedios<br>• Detección de anomalías en streaming<br>• Correlación entre sensores |
+| **Analítica** | • Tiempo de actividad (uptime)<br>• Alertas de mantenimiento predictivo<br>• Eficiencia energética |
+| **Riesgos Clave** | • Pérdida de conectividad<br>• Drift en temporizadores<br>• Calibración de sensores |
+| **Mitigaciones** | • Buffering local en edge<br>• Timestamps server-side<br>• Calibration logs y alerts |
+| **Métrica de Éxito** | Latencia < 2 segundos para alertas críticas |
+
+---
+
+# 🕵️ Caso 3: Logs de Fraude
+
+| Dimensión | Decisiones y Consideraciones |
+|-----------|------------------------------|
+| **V Prioritaria** | **Veracidad** - Precisión crítica para detección de fraudes |
+| **Ingesta** | • Kafka para alta throughput<br>• Schema validation inmediata<br>• Encriptación end-to-end |
+| **Storage** | • Bronze: Datos inmutables<br>• Silver: Enriquecidos con reglas de negocio<br>• Gold: Features para ML |
+| **Compute** | • Reglas en tiempo real (Flink)<br>• Modelos de ML batch para patrones<br>• Graph analysis para redes |
+| **Analítica** | • Tasa de falsos positivos/negativos<br>• Tiempo medio de detección<br>• Pérdidas prevenidas |
+| **Riesgos Clave** | • Falsos positivos afectan UX<br>• Evolución de patrones de fraude<br>• Privacidad y compliance |
+| **Mitigaciones** | • Human-in-the-loop para casos dudosos<br>• Retraining semanal de modelos<br>• Anonimización para desarrollo |
+| **Métrica de Éxito** | Detección < 30 segundos con < 0.1% falsos positivos |
+
+---
+
+# 📊 Matriz Comparativa Resumen
+
+| Caso | V Dominante | Storage Principal | Compute Pattern | Latencia Objetivo |
+|------|-------------|-------------------|-----------------|-------------------|
+| E-commerce | Volumen | Parquet + SQL | Batch + Microservices | 15 min - 24h |
+| IoT | Velocidad | Time-series + Parquet | Streaming + Windows | 2 seg - 5 min |
+| Fraud | Veracidad | Immutable logs + Features | Real-time + ML | 30 seg - 2h |
+
+## 🎯 Key Takeaways
+
+1. **E-commerce** prioriza escalabilidad y consistencia eventual
+2. **IoT** exige baja latencia y tolerancia a fallos de red  
+3. **Fraude** balancea precisión con velocidad de detección
+4. **Todos** requieren monitoreo continuo de data quality
+5. **Elecciones de storage** determinan capacidades analíticas
+
+**Nota**: Estas decisiones deben reevaluarse cada 6-12 meses según evolución de requisitos de negocio y tecnologías disponibles.
