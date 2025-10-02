@@ -1,0 +1,11 @@
+Propón 5 RETOS opcionales con dificultad creciente:
+A) Validaciones extra (rangos de fechas, duplicados por clave natural).
+B) Métrica de veracidad (% válidas por archivo) y reporte en la app.
+C) Tabla “gold” para reporting (defínela) y di cómo mantener linaje.
+D) Ensayo CSV vs Parquet: medir tamaños y tiempos de lectura; conclusiones.
+E) Simular paso a streaming: qué capa cambia primero y por qué (diseño + pseudocódigo).
+ 
+Entrega cada reto con:
+- objetivo,
+- pasos sugeridos,
+- criterio de aceptación (qué debe verse en el repo/app).
