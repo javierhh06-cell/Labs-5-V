@@ -1,0 +1,140 @@
+# tests/checklist.md
+
+# ✅ Checklist de Entrega Final
+
+## 🚀 Despliegue y Funcionalidad
+- [ ] URL de Streamlit Community Cloud funcional y pública
+- [ ] App carga correctamente sin errores iniciales
+- [ ] File uploader acepta múltiples archivos CSV
+- [ ] Procesamiento normaliza datos correctamente
+- [ ] Validaciones muestran errores apropiados
+- [ ] Transformación a silver funciona sin errores
+- [ ] Gráficos se renderizan correctamente
+- [ ] Botones de descarga generan archivos válidos
+
+## 📊 Datos y Resultados
+- [ ] Archivo `bronze.csv` generado y subido a `/data/bronze/`
+- [ ] Archivo `silver.csv` generado y subido a `/data/silver/`
+- [ ] Datos bronze contienen: date, partner, amount, source_file, ingested_at
+- [ ] Datos silver contienen: partner, month, amount, transaction_count
+- [ ] KPIs calculados correctamente en la app
+- [ ] Validaciones de calidad implementadas y funcionales
+
+## 📚 Documentación y Justificación
+- [ ] README.md completo con:
+  - [ ] Explicación de decisiones técnicas justificadas por las 5V's
+  - [ ] Diagrama de arquitectura del pipeline
+  - [ ] Instrucciones de instalación y uso
+- [ ] Capturas de pantalla en `/docs/` mostrando:
+  - [ ] App funcionando con datos de prueba
+  - [ ] Procesamiento exitoso de múltiples CSVs
+  - [ ] Validaciones y transformaciones working
+- [ ] `docs/diccionario.md` completo con:
+  - [ ] Esquema canónico detallado
+  - [ ] Mapeos origen→destino
+  - [ ] Reglas de transformación
+- [ ] `docs/gobernanza.md` completo con:
+  - [ ] Linaje de datos documentado
+  - [ ] Validaciones por capa
+  - [ ] Roles y permisos definidos
+
+## 🔧 Código y Estructura
+- [ ] Estructura de proyecto organizada según especificaciones
+- [ ] Requirements.txt con todas las dependencias
+- [ ] Código modular en `/src/` con type hints
+- [ ] Manejo de errores robusto en toda la app
+- [ ] Comentarios claros en código crítico
+
+---
+
+# 📊 Rúbrica de Evaluación (10 puntos)
+
+## 🎨 Diseño y Justificación (3 puntos)
+
+### 3 puntos - Excelente
+- ✅ Arquitectura bien diseñada con separación clara de responsabilidades
+- ✅ Justificación sólida basada en las 5V's del Big Data:
+  - **Volumen**: Escalabilidad considerada en diseño
+  - **Velocidad**: Procesamiento eficiente de lotes
+  - **Variedad**: Manejo robusto de schemas heterogéneos
+  - **Veracidad**: Múltiples capas de validación
+  - **Valor**: KPIs relevantes para negocio
+- ✅ Elección apropiada de herramientas y formatos (Parquet/Streamlit)
+
+### 2 puntos - Satisfactorio
+- ⚠️ Arquitectura funcional pero con algunas áreas de mejora
+- ⚠️ Justificación presente pero no completamente alineada con 5V's
+- ⚠️ Herramientas apropiadas pero sin explicación detallada
+
+### 1 punto - En desarrollo
+- ❌ Diseño minimalista sin consideración de escalabilidad
+- ❌ Justificación técnica limitada o ausente
+- ❌ Elecciones de herramientas no justificadas
+
+## 📈 Calidad de Datos (3 puntos)
+
+### 3 puntos - Excelente
+- ✅ Sistema de validación robusto y completo
+- ✅ Métricas de calidad calculadas automáticamente
+- ✅ Manejo apropiado de valores problemáticos y edge cases
+- ✅ Transformaciones aplicadas consistentemente
+
+### 2 puntos - Satisfactorio
+- ⚠️ Validaciones básicas implementadas
+- ⚠️ Algunas métricas de calidad presentes
+- ⚠️ Manejo básico de errores
+
+### 1 punto - En desarrollo
+- ❌ Validaciones mínimas o inconsistentes
+- ❌ Métricas de calidad limitadas o ausentes
+- ❌ Manejo pobre de datos problemáticos
+
+## 🔄 Trazabilidad y Data Warehouse (2 puntos)
+
+### 2 puntos - Excelente
+- ✅ Implementación correcta de capas bronze/silver
+- ✅ Metadatos de linaje completos (source_file, ingested_at)
+- ✅ Schema evolution manejado apropiadamente
+- ✅ Trazabilidad completa del pipeline
+
+### 1 punto - Satisfactorio
+- ⚠️ Capas implementadas pero con metadatos limitados
+- ⚠️ Trazabilidad básica presente
+
+### 0 puntos - En desarrollo
+- ❌ Capas no bien definidas o ausentes
+- ❌ Sin metadatos de linaje
+
+## 📖 Documentación (2 puntos)
+
+### 2 puntos - Excelente
+- ✅ README completo con setup, uso y justificaciones
+- ✅ Documentación técnica clara y concisa
+- ✅ Diagramas y capturas que facilitan el entendimiento
+- ✅ Comentarios en código útiles y relevantes
+
+### 1 punto - Satisfactorio
+- ⚠️ Documentación básica presente
+- ⚠️ README con información esencial pero limitada
+
+### 0 puntos - En desarrollo
+- ❌ Documentación mínima o ausente
+- ❌ README incompleto o confuso
+
+---
+
+## 🎯 Cálculo de Puntuación Final
+
+| Categoría | Puntos Máximos | Puntos Obtenidos |
+|-----------|----------------|------------------|
+| Diseño y Justificación | 3 | |
+| Calidad de Datos | 3 | |
+| Trazabilidad y DW | 2 | |
+| Documentación | 2 | |
+| **Total** | **10** | |
+
+**Escala de Evaluación:**
+- 9-10: Excelente ✅
+- 7-8: Bueno 👍  
+- 5-6: Satisfactorio ⚠️
+- 0-4: Necesita mejora ❌
