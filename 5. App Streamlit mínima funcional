@@ -1,0 +1,228 @@
+bigdata-storage-lab-<apellido>/
+├── src/
+│   ├── ingest.py
+│   ├── validate.py
+│   └── transform.py
+└── streamlit_app.py
+
+
+from src.ingest import tag_lineage, concat_bronze
+from src.transform import normalize_columns, to_silver
+from src.validate import basic_checks
+
+# streamlit_app.py
+import streamlit as st
+import pandas as pd
+import io
+from datetime import datetime
+import sys
+import os
+
+# Agregar src al path para imports
+sys.path.append(os.path.join(os.path.dirname(__file__), 'src'))
+
+try:
+    from ingest import tag_lineage, concat_bronze
+    from transform import normalize_columns, to_silver
+    from validate import basic_checks
+except ImportError as e:
+    st.error(f"Error importando módulos: {e}. Asegúrate de que los archivos están en la carpeta src/")
+    st.stop()
+
+def main():
+    st.set_page_config(
+        page_title="Pipeline CSV → Silver", 
+        page_icon="📊", 
+        layout="wide"
+    )
+    
+    st.title("🔄 Pipeline: CSVs Heterogéneos → Almacén Silver")
+    st.markdown("Carga, normaliza y transforma múltiples archivos CSV a un formato analítico unificado")
+    
+    # Sidebar para configuración
+    with st.sidebar:
+        st.header("⚙️ Configuración de Mapeo")
+        st.markdown("Especifica los nombres de columnas en tus archivos CSV:")
+        
+        date_col = st.text_input("Columna Fecha", value="date", 
+                                help="Nombre de la columna que contiene fechas")
+        partner_col = st.text_input("Columna Partner", value="partner", 
+                                   help="Nombre de la columna que contiene partners")
+        amount_col = st.text_input("Columna Monto", value="amount", 
+                                  help="Nombre de la columna que contiene montos")
+        
+        st.markdown("---")
+        st.info("**Instrucciones:**\n1. Sube tus CSVs\n2. Revisa validaciones\n3. Descarga resultados")
+    
+    # Upload de archivos
+    uploaded_files = st.file_uploader(
+        "Sube archivos CSV", 
+        type=["csv"], 
+        accept_multiple_files=True,
+        help="Puedes seleccionar múltiples archivos"
+    )
+    
+    if not uploaded_files:
+        st.info("👆 Sube uno o más archivos CSV para comenzar")
+        return
+    
+    # Procesamiento de archivos
+    bronze_frames = []
+    processing_results = []
+    
+    for uploaded_file in uploaded_files:
+        with st.spinner(f"Procesando {uploaded_file.name}..."):
+            try:
+                # Leer CSV con fallback a latin-1
+                try:
+                    df = pd.read_csv(uploaded_file)
+                except UnicodeDecodeError:
+                    df = pd.read_csv(uploaded_file, encoding='latin-1')
+                
+                # Crear mapeo de columnas
+                column_mapping = {}
+                if date_col in df.columns:
+                    column_mapping[date_col] = 'date'
+                if partner_col in df.columns:
+                    column_mapping[partner_col] = 'partner'
+                if amount_col in df.columns:
+                    column_mapping[amount_col] = 'amount'
+                
+                # Aplicar transformaciones
+                df_normalized = normalize_columns(df, column_mapping)
+                df_with_lineage = tag_lineage(df_normalized, uploaded_file.name)
+                
+                bronze_frames.append(df_with_lineage)
+                
+                # Validaciones básicas
+                errors = basic_checks(df_normalized)
+                status = "✅ OK" if not errors else "❌ Errores"
+                
+                processing_results.append({
+                    "Archivo": uploaded_file.name,
+                    "Registros": len(df),
+                    "Estado": status,
+                    "Errores": "; ".join(errors) if errors else "Ninguno"
+                })
+                
+            except Exception as e:
+                st.error(f"Error procesando {uploaded_file.name}: {str(e)}")
+                processing_results.append({
+                    "Archivo": uploaded_file.name,
+                    "Registros": 0,
+                    "Estado": "❌ Fallo",
+                    "Errores": str(e)
+                })
+    
+    # Mostrar resultados del procesamiento
+    st.subheader("📋 Resultados del Procesamiento")
+    results_df = pd.DataFrame(processing_results)
+    st.dataframe(results_df, use_container_width=True)
+    
+    if not bronze_frames:
+        st.error("No se pudo procesar ningún archivo correctamente")
+        return
+    
+    # Crear dataset bronze unificado
+    try:
+        bronze_df = concat_bronze(bronze_frames)
+        
+        # Validación final del dataset bronze
+        final_errors = basic_checks(bronze_df)
+        
+        if final_errors:
+            st.error("❌ Errores en dataset Bronze unificado:")
+            for error in final_errors:
+                st.write(f"- {error}")
+        else:
+            st.success("✅ Dataset Bronze validado correctamente")
+            
+            # Mostrar dataset bronze
+            st.subheader("🗃️ Dataset Bronze (Unificado)")
+            st.dataframe(bronze_df, use_container_width=True)
+            
+            # Métricas básicas bronze
+            col1, col2, col3, col4 = st.columns(4)
+            with col1:
+                st.metric("Total Registros", len(bronze_df))
+            with col2:
+                st.metric("Partners Únicos", bronze_df['partner'].nunique())
+            with col3:
+                st.metric("Rango Fechas", 
+                         f"{bronze_df['date'].min()} a {bronze_df['date'].max()}")
+            with col4:
+                total_amount = bronze_df['amount'].sum()
+                st.metric("Monto Total", f"€{total_amount:,.2f}")
+            
+            # Transformar a silver
+            st.subheader("✨ Transformación a Silver")
+            
+            try:
+                silver_df = to_silver(bronze_df)
+                
+                # Mostrar dataset silver
+                st.dataframe(silver_df, use_container_width=True)
+                
+                # KPIs Silver
+                st.subheader("📈 KPIs - Capa Silver")
+                
+                kpi1, kpi2, kpi3, kpi4 = st.columns(4)
+                with kpi1:
+                    st.metric("Meses Analizados", silver_df['month'].nunique())
+                with kpi2:
+                    st.metric("Transacciones Totales", silver_df['transaction_count'].sum())
+                with kpi3:
+                    st.metric("Partner con Más Transacciones", 
+                             silver_df.loc[silver_df['transaction_count'].idxmax(), 'partner'])
+                with kpi4:
+                    st.metric("Mes con Mayor Monto", 
+                             silver_df.loc[silver_df['amount'].idxmax(), 'month'].strftime('%Y-%m'))
+                
+                # Gráfico de barras
+                st.subheader("📊 Monto por Mes")
+                
+                # Preparar datos para el gráfico
+                monthly_totals = silver_df.groupby('month')['amount'].sum().reset_index()
+                monthly_totals['month_str'] = monthly_totals['month'].dt.strftime('%Y-%m')
+                
+                # Usar native Streamlit chart (sin matplotlib custom)
+                st.bar_chart(
+                    monthly_totals.set_index('month_str')['amount'],
+                    color="#1f77b4"  # Color sobrio por defecto
+                )
+                
+                # Botones de descarga
+                st.subheader("💾 Descargar Datasets")
+                
+                col_dl1, col_dl2 = st.columns(2)
+                
+                with col_dl1:
+                    # Descargar bronze
+                    bronze_csv = bronze_df.to_csv(index=False)
+                    st.download_button(
+                        label="📥 Descargar Bronze.csv",
+                        data=bronze_csv,
+                        file_name=f"bronze_dataset_{datetime.now().strftime('%Y%m%d_%H%M')}.csv",
+                        mime="text/csv",
+                        help="Descarga el dataset bronze completo"
+                    )
+                
+                with col_dl2:
+                    # Descargar silver
+                    silver_csv = silver_df.to_csv(index=False)
+                    st.download_button(
+                        label="📥 Descargar Silver.csv", 
+                        data=silver_csv,
+                        file_name=f"silver_dataset_{datetime.now().strftime('%Y%m%d_%H%M')}.csv",
+                        mime="text/csv",
+                        help="Descarga el dataset silver agregado"
+                    )
+                
+            except Exception as e:
+                st.error(f"Error en transformación Silver: {str(e)}")
+                
+    except Exception as e:
+        st.error(f"Error creando dataset bronze: {str(e)}")
+
+if __name__ == "__main__":
+    main()
