@@ -1,0 +1,22 @@
+Repository: tu-usuario/bigdata-storage-lab-apellido
+Branch: main
+Main file path: streamlit_app.py
+
+# ANTES
+from src.ingest import tag_lineage
+
+# DESPUÉS
+try:
+    from ingest import tag_lineage, concat_bronze
+    from transform import normalize_columns, to_silver
+    from validate import basic_checks
+except ImportError:
+    # Fallback para desarrollo local
+    from src.ingest import tag_lineage, concat_bronze
+    from src.transform import normalize_columns, to_silver
+    from src.validate import basic_checks
+
+streamlit>=1.28.0
+pandas>=1.5.0
+pyarrow>=12.0.0
+python-dateutil>=2.8.0
